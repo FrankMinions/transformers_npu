@@ -1478,13 +1478,14 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
             config._attn_implementation = "flash_attention_2"
 
         if config._attn_implementation == "flash_attention_2":
-            cls._check_and_enable_flash_attn_2(
-                config,
-                torch_dtype=torch_dtype,
-                device_map=device_map,
-                hard_check_only=False,
-                check_device_map=check_device_map,
-            )
+            pass
+            # cls._check_and_enable_flash_attn_2(
+            #     config,
+            #     torch_dtype=torch_dtype,
+            #     device_map=device_map,
+            #     hard_check_only=False,
+            #     check_device_map=check_device_map,
+            # )
         elif requested_attn_implementation in [None, "sdpa"] and not is_torch_xla_available():
             # use_flash_attention_2 takes priority over SDPA, hence SDPA treated in this elif.
             config = cls._check_and_enable_sdpa(
