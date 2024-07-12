@@ -47,6 +47,7 @@ from .configuration_qwen2 import Qwen2Config
 import torch_npu
 from einops import rearrange, repeat
 import numpy as np
+from torch_npu.contrib import transfer_to_npu
 
 if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
