@@ -626,7 +626,7 @@ class Qwen2FlashAttention2(Qwen2Attention):
 
                 else:
                     atten_mask_npu = torch.triu(
-                        torch.ones(max_seqlen_in_batch_q, max_seqlen_in_batch_k, device="npu", dtype=torch.bool), 1
+                        torch.ones(max_seqlen_in_batch_q, max_seqlen_in_batch_k).to(torch.float16).bool().to(query_states.device), 1
                     )
                     head_num = query_states.shape[1]
                     attn_output_unpad = torch_npu.npu_fusion_attention(
