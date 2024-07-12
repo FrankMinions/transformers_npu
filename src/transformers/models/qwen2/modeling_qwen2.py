@@ -617,7 +617,7 @@ class Qwen2FlashAttention2(Qwen2Attention):
                         atten_mask=None,
                         scale=1.0 / math.sqrt(query_states.shape[-1]),
                         keep_prob=1,
-                        input_layout="TND",  # T=total tokens of batch, N=head_num, D=hidden_size//head_num
+                        input_layout="TND",  # T=total tokens of batch, N=head_num, D(head_dim)=hidden_size//head_num
                         actual_seq_qlen=cu_seqlens_q[1:].tolist(),
                         actual_seq_kvlen=cu_seqlens_k[1:].tolist(),
                         pre_tockens=batch_size,
