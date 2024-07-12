@@ -589,8 +589,7 @@ class Qwen2FlashAttention2(Qwen2Attention):
         #     causal = self.is_causal
         # else:
         #     TODO: Remove the `query_length != 1` check once Flash Attention for RoCm is bumped to 2.1. For details, please see the comment in LlamaFlashAttention2 __init__.
-        # causal = self.is_causal and query_length != 1
-        causal = False
+        causal = self.is_causal and query_length != 1
 
         # Decide whether to use SWA or not by layer index.
         if use_sliding_windows and self.layer_idx >= self.config.max_window_layers:
@@ -618,33 +617,31 @@ class Qwen2FlashAttention2(Qwen2Attention):
                         scale=1.0 / math.sqrt(query_states.shape[-1]),
                         keep_prob=1,
                         input_layout="TND",
-                        actual_seq_qlen=tuple(cu_seqlens_q[1:].cpu().numpy().tolist()),
-                        actual_seq_kvlen=tuple(cu_seqlens_k[1:].cpu().numpy().tolist()),
-                        pre_tockens=2147483647,
-                        next_tockens=2147483647,
+                        actual_seq_qlen=cu_seqlens_q[1:].tolist(),
+                        actual_seq_kvlen=cu_seqlens_k[1:].tolist(),
+                        pre_tockens=batch_size,
+                        next_tockens=batch_size,
                         inner_precise=0,
                         sparse_mode=0)[0]
 
                 else:
-                    raise ValueError(
-                        f"`causal` = {causal} is not supported yet!"
+                    atten_mask_npu = torch.triu(
+                        torch.ones(max_seqlen_in_batch_q, max_seqlen_in_batch_k, device="npu", dtype=torch.bool), 1
                     )
-                    # atten_mask_npu = torch.from_numpy(
-                    #     np.triu(np.ones([max_seqlen_in_batch_q, max_seqlen_in_batch_k]), k=1)).to(query_states.device)
-                    # head_num = query_states.shape[1]
-                    # attn_output_unpad = torch_npu.npu_fusion_attention(
-                    #     query_states, key_states, value_states, head_num,
-                    #     pse=None,
-                    #     padding_mask=None,
-                    #     atten_mask=atten_mask_npu,
-                    #     scale=1.0 / math.sqrt(query_states.shape[-1]),
-                    #     keep_prob=1,
-                    #     input_layout="TND",
-                    #     actual_seq_qlen=tuple(cu_seqlens_q[1:].cpu().numpy().tolist()),
-                    #     actual_seq_kvlen=tuple(cu_seqlens_k[1:].cpu().numpy().tolist()),
-                    #     pre_tockens=2147483647,
-                    #     next_tockens=0,
-                    #     inner_precise=0)[0]
+                    head_num = query_states.shape[1]
+                    attn_output_unpad = torch_npu.npu_fusion_attention(
+                        query_states, key_states, value_states, head_num,
+                        pse=None,
+                        padding_mask=None,
+                        atten_mask=atten_mask_npu,
+                        scale=1.0 / math.sqrt(query_states.shape[-1]),
+                        keep_prob=1,
+                        input_layout="TND",
+                        actual_seq_qlen=cu_seqlens_q[1:].tolist(),
+                        actual_seq_kvlen=cu_seqlens_k[1:].tolist(),
+                        pre_tockens=batch_size,
+                        next_tockens=0,
+                        inner_precise=0)[0]
 
                 # attn_output_unpad = flash_attn_varlen_func(
                 #     query_states,
